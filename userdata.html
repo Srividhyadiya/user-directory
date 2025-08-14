@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced API User Data</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Back to solid gray background */
+        }
+        
+        /* Custom gradient for the header */
+        .header-bg {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        /* Custom button gradient and hover effects */
+        .reload-btn-gradient {
+            background-image: linear-gradient(45deg, #1d4ed8 0%, #4c51bf 100%);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .reload-btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
+        }
+        /* Custom modal overlay and content styling */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+        /* User card hover effect */
+        .user-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        /* Custom header for the user cards */
+        .user-card-header {
+            background-image: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Skeleton loading animation */
+        .skeleton-card {
+            background-color: #e2e8f0;
+        }
+        .skeleton-card .animated-bg {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                background-color: #e2e8f0;
+            }
+            50% {
+                background-color: #cbd5e1;
+            }
+            100% {
+                background-color: #e2e8f0;
+            }
+        }
+        /* Search bar and button animations */
+        .animated-input {
+            transition: all 0.3s ease;
+        }
+        .animated-input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 0 10px rgba(29, 78, 216, 0.3);
+        }
+        .animated-button {
+            transition: all 0.2s ease;
+        }
+        .animated-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Main container z-index to be on top of the overlay */
+        .main-container {
+            position: relative;
+            z-index: 10;
+        }
+
+        .user-card-content p {
+            transition: color 0.3s ease;
+        }
+
+        .user-card:hover .user-card-content p {
+            color: #4a5568; /* A darker gray color on hover */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-6xl main-container">
+        
+        <header class="text-center mb-6 py-6 rounded-t-2xl header-bg text-white shadow-lg">
+            <h1 class="text-4xl font-bold">Enhanced User Directory</h1>
+            <p class="text-gray-200 mt-2">Fetching data from `jsonplaceholder.typicode.com`</p>
+        </header>
+
+        <!-- Control Panel: Reload, Search, and Sort -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 px-4">
+            <button id="reloadButton" class="reload-btn-gradient text-white font-medium py-2 px-6 rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Reload Data
+            </button>
+            <input type="text" id="searchBox" placeholder="Search by name or email..." class="flex-grow p-2 pl-4 rounded-full border-2 border-gray-300 focus:border-blue-500 transition-colors duration-200 focus:outline-none max-w-md shadow-inner animated-input">
+            
+            <div class="flex gap-2">
+                <button id="sortByName" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 border border-gray-300 animated-button">
+                    Sort by Name
+                </button>
+                <button id="sortByEmail" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 border border-gray-300 animated-button">
+                    Sort by Email
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loading & Error Indicators -->
+        <div id="loadingIndicator" class="text-center text-blue-500 hidden p-4">
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-pulse">
+                <!-- Skeleton cards for loading state -->
+                <div class="bg-gray-200 p-6 rounded-xl shadow-sm h-32"></div>
+                <div class="bg-gray-200 p-6 rounded-xl shadow-sm h-32"></div>
+                <div class="bg-gray-200 p-6 rounded-xl shadow-sm h-32"></div>
+            </div>
+            <p class="mt-4">Loading user data...</p>
+        </div>
+
+        <div id="errorContainer" class="text-center text-red-500 hidden p-4 bg-red-50 rounded-lg border border-red-200">
+            <p class="font-medium">⚠️ Error fetching data.</p>
+            <p id="errorMessage" class="text-sm mt-1"></p>
+        </div>
+
+        <!-- Main User Display Container -->
+        <div id="usersContainer" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 px-4">
+            <!-- User cards will be inserted here by JavaScript -->
+        </div>
+
+        <!-- User Details Modal (hidden by default) -->
+        <div id="userDetailsModal" class="fixed inset-0 z-50 overflow-y-auto hidden flex items-center justify-center p-4 modal-overlay">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto relative z-10 modal-content border-t-4 border-blue-500">
+                <button id="closeModalButton" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors duration-200 text-3xl font-bold">&times;</button>
+                <h3 id="modalName" class="text-3xl font-bold text-gray-800 mb-4 border-b-2 pb-2"></h3>
+                <p id="modalEmail" class="text-gray-600 mb-2"></p>
+                <p id="modalPhone" class="text-gray-600 mb-2"></p>
+                <p id="modalWebsite" class="text-gray-600 mb-2"></p>
+                <p id="modalCompany" class="text-gray-600 mb-4"></p>
+                <p id="modalAddress" class="text-gray-600 font-medium"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variable to store the original fetched user data
+        let allUsers = [];
+        let sortOrder = 'asc'; // 'asc' for ascending, 'desc' for descending
+
+        // Get references to the HTML elements
+        const usersContainer = document.getElementById('usersContainer');
+        const reloadButton = document.getElementById('reloadButton');
+        const searchBox = document.getElementById('searchBox');
+        const sortByNameButton = document.getElementById('sortByName');
+        const sortByEmailButton = document.getElementById('sortByEmail');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Modal elements
+        const userDetailsModal = document.getElementById('userDetailsModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const modalName = document.getElementById('modalName');
+        const modalEmail = document.getElementById('modalEmail');
+        const modalPhone = document.getElementById('modalPhone');
+        const modalWebsite = document.getElementById('modalWebsite');
+        const modalCompany = document.getElementById('modalCompany');
+        const modalAddress = document.getElementById('modalAddress');
+
+        // Function to display user details in a modal
+        const showUserDetails = (user) => {
+            modalName.textContent = user.name;
+            modalEmail.innerHTML = `<span class="font-semibold text-gray-800">Email:</span> <span class="text-gray-600">${user.email}</span>`;
+            modalPhone.innerHTML = `<span class="font-semibold text-gray-800">Phone:</span> <span class="text-gray-600">${user.phone}</span>`;
+            modalWebsite.innerHTML = `<span class="font-semibold text-gray-800">Website:</span> <a href="http://${user.website}" target="_blank" class="text-blue-500 hover:underline">${user.website}</a>`;
+            modalCompany.innerHTML = `<span class="font-semibold text-gray-800">Company:</span> <span class="text-gray-600">${user.company.name}</span>`;
+            modalAddress.innerHTML = `<span class="font-semibold text-gray-800">Address:</span> <span class="text-gray-600">${user.address.street}, ${user.address.suite}, ${user.address.city}, ${user.address.zipcode}</span>`;
+            userDetailsModal.classList.remove('hidden');
+        };
+
+        // Function to close the modal
+        const closeModal = () => {
+            userDetailsModal.classList.add('hidden');
+        };
+
+        // Function to display the users on the page
+        const displayUsers = (users) => {
+            usersContainer.innerHTML = ''; // Clear container
+            
+            if (users.length === 0) {
+                usersContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">No users found matching your criteria.</p>';
+                return;
+            }
+
+            users.forEach(user => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-card bg-white rounded-xl shadow-sm transition-all duration-200 border border-gray-200 cursor-pointer overflow-hidden';
+                userCard.innerHTML = `
+                    <div class="user-card-header text-white p-4">
+                        <h3 class="text-xl font-semibold">${user.name}</h3>
+                    </div>
+                    <div class="p-4 user-card-content">
+                        <p class="text-gray-600 mt-1">
+                            <span class="font-medium text-gray-700">Email:</span> ${user.email}
+                        </p>
+                        <p class="text-gray-600 mt-1">
+                            <span class="font-medium text-gray-700">City:</span> ${user.address.city}
+                        </p>
+                    </div>
+                `;
+                // Add a click listener to show the modal with full details
+                userCard.addEventListener('click', () => showUserDetails(user));
+                usersContainer.appendChild(userCard);
+            });
+        };
+
+        // Function to filter and display users based on search input
+        const filterAndDisplayUsers = () => {
+            const searchTerm = searchBox.value.toLowerCase();
+            const filteredUsers = allUsers.filter(user => 
+                user.name.toLowerCase().includes(searchTerm) || 
+                user.email.toLowerCase().includes(searchTerm)
+            );
+            displayUsers(filteredUsers);
+        };
+
+        // Function to sort the users
+        const sortUsers = (key) => {
+            // Toggle sort order
+            sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+
+            allUsers.sort((a, b) => {
+                const valueA = a[key].toLowerCase();
+                const valueB = b[key].toLowerCase();
+
+                if (sortOrder === 'asc') {
+                    if (valueA < valueB) return -1;
+                    if (valueA > valueB) return 1;
+                } else {
+                    if (valueA > valueB) return -1;
+                    if (valueA < valueB) return 1;
+                }
+                return 0;
+            });
+            // Redisplay the sorted list
+            filterAndDisplayUsers();
+        };
+
+        // Function to fetch users from the API
+        const fetchUsers = async () => {
+            // Show loading indicator and hide previous content
+            loadingIndicator.classList.remove('hidden');
+            usersContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+            
+            // Clear search box and reset sort order on new fetch
+            searchBox.value = '';
+            sortOrder = 'asc';
+
+            try {
+                const response = await fetch('https://jsonplaceholder.typicode.com/users');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                allUsers = await response.json();
+                displayUsers(allUsers);
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                errorMessage.textContent = error.message;
+                errorContainer.classList.remove('hidden');
+                usersContainer.classList.add('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                if (errorContainer.classList.contains('hidden')) {
+                     usersContainer.classList.remove('hidden');
+                }
+            }
+        };
+
+        // Add event listeners
+        reloadButton.addEventListener('click', fetchUsers);
+        searchBox.addEventListener('input', filterAndDisplayUsers);
+        sortByNameButton.addEventListener('click', () => sortUsers('name'));
+        sortByEmailButton.addEventListener('click', () => sortUsers('email'));
+        closeModalButton.addEventListener('click', closeModal);
+        userDetailsModal.addEventListener('click', (e) => {
+            if (e.target === userDetailsModal) {
+                closeModal();
+            }
+        });
+
+        // Fetch data on page load
+        window.addEventListener('load', fetchUsers);
+    </script>
+</body>
+</html>
